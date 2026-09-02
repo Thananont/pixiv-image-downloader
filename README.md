@@ -44,7 +44,7 @@ DOWNLOAD_DIR=downloads
 
 ### Queue artwork in the browser
 
-- Open any artwork page on Pixiv (`/artworks/123456789`).
+- Open any artwork page on Pixiv (`/artworks/111111`).
 - Click **Add to queue** (top-right). Click again to remove it.
 - The floating panel shows how many items are queued.
 - Click **Export** to download `pixiv-queue.json`.
@@ -64,19 +64,19 @@ Images are saved to `downloads/` by default (configurable via `DOWNLOAD_DIR` in 
 ### Download by ID directly
 
 ```bash
-python -m pixiv_images_downloader download 123456789 987654321
+python -m pixiv_images_downloader download 111111 111111
 ```
 
 You can combine both:
 
 ```bash
-python -m pixiv_images_downloader download --queue pixiv-queue.json 111111111
+python -m pixiv_images_downloader download --queue pixiv-queue.json 111111
 ```
 
 ### Options
 
 ```bash
-python -m pixiv_images_downloader download --queue pixiv-queue.json --output D:\Pixiv
+python -m pixiv_images_downloader download --queue pixiv-queue.json --output ./download
 python -m pixiv_images_downloader download --queue pixiv-queue.json --force
 ```
 
@@ -92,8 +92,8 @@ See `queue.example.json`:
   "version": 1,
   "items": [
     {
-      "id": 123456789,
-      "url": "https://www.pixiv.net/artworks/123456789",
+      "id": 111111,
+      "url": "https://www.pixiv.net/artworks/111111",
       "added_at": "2026-07-23T00:00:00.000Z"
     }
   ]
@@ -104,7 +104,7 @@ See `queue.example.json`:
 
 - Multi-page artworks download every page automatically.
 - Existing files are skipped unless you pass `--force`.
-- File names look like: `ArtistName_123456789_Title.jpg`
+- File names look like: `ArtistName_111111_Title.jpg`
 - For personal use only. Respect Pixiv's terms and rate limits.
 
 ## Next steps
