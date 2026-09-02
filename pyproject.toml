@@ -1,0 +1,21 @@
+[project]
+name = "pixiv-images-downloader"
+version = "0.1.0"
+description = "Download Pixiv artwork from a browser-exported queue"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pixivpy3>=3.7.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+pixiv-images-downloader = "pixiv_images_downloader.cli:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pixiv_images_downloader*"]
