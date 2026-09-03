@@ -46,12 +46,15 @@ def get_image_urls(api: AppPixivAPI, artwork_id: int) -> tuple[object, list[str]
     return illust, urls
 
 
-def build_filename(illust: object, artwork_id: int, page_index: int, url: str) -> str:
+def build_artwork_folder(illust: object, artwork_id: int) -> str:
     user_name = sanitize_filename(getattr(illust.user, "name", "unknown"))
     title = sanitize_filename(getattr(illust, "title", "untitled"))
+    return f"{user_name}_{artwork_id}_{title}"
+
+
+def build_filename(page_index: int, url: str) -> str:
     ext = extension_from_url(url)
-    page_suffix = f"_p{page_index + 1:02d}" if getattr(illust, "page_count", 1) > 1 else ""
-    return f"{user_name}_{artwork_id}{page_suffix}_{title}{ext}"
+    return f"p{page_index + 1:02d}{ext}"
 
 
 def download_artwork(
@@ -62,21 +65,23 @@ def download_artwork(
     skip_existing: bool = True,
 ) -> list[Path]:
     illust, urls = get_image_urls(api, artwork_id)
+    artwork_dir = output_dir / build_artwork_folder(illust, artwork_id)
+    artwork_dir.mkdir(parents=True, exist_ok=True)
     saved: list[Path] = []
 
     for page_index, url in enumerate(urls):
-        filename = build_filename(illust, artwork_id, page_index, url)
-        destination = output_dir / filename
+        filename = build_filename(page_index, url)
+        destination = artwork_dir / filename
 
         if skip_existing and destination.exists():
-            print(f"  skip existing: {destination.name}")
+            print(f"  skip existing: {artwork_dir.name}/{destination.name}")
             saved.append(destination)
             continue
 
-        print(f"  downloading: {destination.name}")
+        print(f"  downloading: {artwork_dir.name}/{destination.name}")
         api.download(
             url,
-            path=str(output_dir),
+            path=str(artwork_dir),
             name=filename,
             referer="https://www.pixiv.net/",
         )
