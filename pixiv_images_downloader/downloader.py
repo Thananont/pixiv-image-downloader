@@ -21,14 +21,25 @@ def extension_from_url(url: str) -> str:
     return suffix if suffix in {".jpg", ".jpeg", ".png", ".gif"} else ".jpg"
 
 
-def get_image_urls(api: AppPixivAPI, artwork_id: int) -> tuple[object, list[str]]:
+def get_image_data(api: AppPixivAPI, artwork_id: int) -> tuple[object, list[str]]:
     detail = api.illust_detail(artwork_id)
     illust = detail.illust
+    user = illust.user 
+
+    title = illust.title
+    user_id = user.id
+    user_name = user.name
+
+    image_data = {
+        "title": title,
+        "user_id": user_id,
+        "user_name": user_name, 
+    }
 
     if illust.page_count <= 1:
         single = illust.meta_single_page or {}
         url = single.get("original_image_url") or illust.image_urls.large
-        return illust, [url]
+        return image_data, [url]
 
     urls: list[str] = []
     for page in illust.meta_pages or []:
@@ -43,14 +54,7 @@ def get_image_urls(api: AppPixivAPI, artwork_id: int) -> tuple[object, list[str]
     if not urls:
         raise RuntimeError(f"No image URLs found for artwork {artwork_id}.")
 
-    return illust, urls
-
-
-def build_artwork_folder(illust: object, artwork_id: int) -> str:
-    user_name = sanitize_filename(getattr(illust.user, "name", "unknown"))
-    title = sanitize_filename(getattr(illust, "title", "untitled"))
-    return f"{user_name}_{artwork_id}_{title}"
-
+    return image_data, urls
 
 def build_filename(page_index: int, url: str) -> str:
     ext = extension_from_url(url)
@@ -64,8 +68,11 @@ def download_artwork(
     *,
     skip_existing: bool = True,
 ) -> list[Path]:
-    illust, urls = get_image_urls(api, artwork_id)
-    artwork_dir = output_dir / build_artwork_folder(illust, artwork_id)
+    image_data, urls = get_image_data(api, artwork_id)
+
+    artist_folder_name = sanitize_filename(f"{image_data["user_name"]}_{image_data["user_id"]}")
+    artwork_folder_name = sanitize_filename(f"{image_data["title"]}_{artwork_id}")
+    artwork_dir = output_dir / artist_folder_name / artwork_folder_name 
     artwork_dir.mkdir(parents=True, exist_ok=True)
     saved: list[Path] = []
 
