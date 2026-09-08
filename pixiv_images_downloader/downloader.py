@@ -15,7 +15,7 @@ def sanitize_filename(value: str, max_length: int = 80) -> str:
     return cleaned[:max_length].rstrip(". ")
 
 
-def extension_from_url(url: str) -> str:
+def get_image_file_extension_from_url(url: str) -> str:
     path = url.split("?", 1)[0]
     suffix = Path(path).suffix.lower()
     return suffix if suffix in {".jpg", ".jpeg", ".png", ".gif"} else ".jpg"
@@ -57,7 +57,7 @@ def get_image_data(api: AppPixivAPI, artwork_id: int) -> tuple[object, list[str]
     return image_data, urls
 
 def build_filename(page_index: int, url: str) -> str:
-    ext = extension_from_url(url)
+    ext = get_image_file_extension_from_url(url)
     return f"p{page_index + 1:02d}{ext}"
 
 
