@@ -18,7 +18,10 @@
   const QUEUE_VERSION = 1;
 
   function readQueue() {
-    const stored = GM_getValue(STORAGE_KEY, { version: QUEUE_VERSION, items: [] });
+    const stored = GM_getValue(STORAGE_KEY, {
+      version: QUEUE_VERSION,
+      items: [],
+    });
     if (!stored || !Array.isArray(stored.items)) {
       return { version: QUEUE_VERSION, items: [] };
     }
@@ -27,7 +30,7 @@
 
   function writeQueue(queue) {
     GM_setValue(STORAGE_KEY, queue);
-    updatePanel();
+    updateManagementPanel();
   }
 
   function parseArtworkId(url = location.href) {
@@ -37,10 +40,6 @@
 
   function isArtworkPage(url = location.href) {
     return /\/artworks\/\d+/.test(url);
-  }
-
-  function isQueued(artworkId) {
-    return readQueue().items.some((item) => item.id === artworkId);
   }
 
   function addToQueue(artworkId) {
@@ -106,17 +105,17 @@
     setTimeout(() => toast.remove(), 1800);
   }
 
-  let panel;
+  let managementPanel;
   let queueButton;
 
-  function ensurePanel() {
-    if (panel) {
-      return panel;
+  function initPanel() {
+    if (managementPanel) {
+      return managementPanel;
     }
 
-    panel = document.createElement("div");
-    panel.id = "pixiv-queue-panel";
-    Object.assign(panel.style, {
+    managementPanel = document.createElement("div");
+    managementPanel.id = "pixiv-queue-panel";
+    Object.assign(managementPanel.style, {
       position: "fixed",
       bottom: "20px",
       right: "20px",
@@ -132,7 +131,7 @@
       fontSize: "13px",
     });
 
-    panel.innerHTML = `
+    managementPanel.innerHTML = `
       <div style="font-weight:600;margin-bottom:8px;">Pixiv Queue</div>
       <div id="pixiv-queue-count">0 items</div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
@@ -141,22 +140,26 @@
       </div>
     `;
 
-    document.body.appendChild(panel);
+    document.body.appendChild(managementPanel);
 
-    panel.querySelector("#pixiv-queue-export").addEventListener("click", exportQueue);
-    panel.querySelector("#pixiv-queue-clear").addEventListener("click", () => {
-      if (confirm("Clear the entire queue?")) {
-        clearQueue();
-        refreshArtworkButton();
-        showToast("Queue cleared.");
-      }
-    });
+    managementPanel
+      .querySelector("#pixiv-queue-export")
+      .addEventListener("click", exportQueue);
+    managementPanel
+      .querySelector("#pixiv-queue-clear")
+      .addEventListener("click", () => {
+        if (confirm("Clear the entire queue?")) {
+          clearQueue();
+          refreshArtworkButton();
+          showToast("Queue cleared.");
+        }
+      });
 
-    return panel;
+    return managementPanel;
   }
 
-  function updatePanel() {
-    const root = ensurePanel();
+  function updateManagementPanel() {
+    const root = initPanel();
     const count = readQueue().items.length;
     root.querySelector("#pixiv-queue-count").textContent =
       count === 1 ? "1 item" : `${count} items`;
@@ -199,13 +202,14 @@
       boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
     });
 
-    const queued = isQueued(artworkId);
-    queueButton.textContent = queued ? "Queued ✓" : "Add to queue";
-    queueButton.style.background = queued ? "#2f6fed" : "#0096fa";
+    const queue = readQueue();
+    const isQueued = queue.items.some((item) => item.id === artworkId);
+    queueButton.textContent = isQueued ? "Queued ✓" : "Add to queue";
+    queueButton.style.background = isQueued ? "#2f6fed" : "#0096fa";
     queueButton.style.color = "#fff";
 
     queueButton.addEventListener("click", () => {
-      if (isQueued(artworkId)) {
+      if (isQueued) {
         removeFromQueue(artworkId);
         showToast(`Removed ${artworkId} from queue.`);
       } else {
@@ -220,7 +224,7 @@
 
   function onNavigate() {
     refreshArtworkButton();
-    updatePanel();
+    updateManagementPanel();
   }
 
   GM_registerMenuCommand("Export queue.json", exportQueue);
@@ -231,8 +235,8 @@
     }
   });
 
-  ensurePanel();
-  updatePanel();
+  initPanel();
+  updateManagementPanel();
   refreshArtworkButton();
 
   let lastUrl = location.href;

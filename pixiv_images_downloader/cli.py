@@ -95,7 +95,7 @@ def main() -> None:
                 output_dir,
                 skip_existing=not args.force,
             )
-        except Exception as exc:  # noqa: BLE001 - report and continue with remaining items
+        except Exception as exc:
             failures.append((artwork_id, str(exc)))
             print(f"  error: {exc}")
 
