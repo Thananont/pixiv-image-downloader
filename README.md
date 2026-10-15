@@ -44,8 +44,8 @@ DOWNLOAD_DIR=downloads
 
 ### Queue artwork in the browser
 
-- Open any artwork page on Pixiv (`/artworks/111111`).
-- Click **Add to queue** (top-right). Click again to remove it.
+- On any artwork page (`/artworks/111111`), click **Add to queue** (top-right). Click again to remove it.
+- On listing pages (artist works, search, bookmarks, home, related works), click **+** on a thumbnail. It turns into **✓** when queued; click again to remove.
 - The floating panel shows how many items are queued.
 - Click **Export** to download `pixiv-queue.json`.
 

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pixiv Download Queue
 // @namespace    pixiv-images-downloader
-// @version      0.1.0
+// @version      0.2.0
 // @description  Queue Pixiv artwork while browsing, then export queue.json for pixiv-images-downloader
 // @author       pixiv-images-downloader
 // @match        https://www.pixiv.net/*
@@ -16,6 +16,7 @@
 
   const STORAGE_KEY = "pixiv_download_queue";
   const QUEUE_VERSION = 1;
+  const CARD_BUTTON_CLASS = "pixiv-queue-card-btn";
 
   function readQueue() {
     const stored = GM_getValue(STORAGE_KEY, {
@@ -31,15 +32,21 @@
   function writeQueue(queue) {
     GM_setValue(STORAGE_KEY, queue);
     updateManagementPanel();
+    refreshArtworkButton();
+    refreshCardButtonStates();
   }
 
   function parseArtworkId(url = location.href) {
-    const match = url.match(/\/artworks\/(\d+)/);
+    const match = String(url).match(/\/artworks\/(\d+)/);
     return match ? Number(match[1]) : null;
   }
 
   function isArtworkPage(url = location.href) {
     return /\/artworks\/\d+/.test(url);
+  }
+
+  function isQueued(artworkId) {
+    return readQueue().items.some((item) => item.id === artworkId);
   }
 
   function addToQueue(artworkId) {
@@ -61,6 +68,18 @@
     const queue = readQueue();
     queue.items = queue.items.filter((item) => item.id !== artworkId);
     writeQueue(queue);
+  }
+
+  function toggleQueue(artworkId) {
+    if (isQueued(artworkId)) {
+      removeFromQueue(artworkId);
+      showToast(`Removed ${artworkId} from queue.`);
+      return false;
+    }
+
+    addToQueue(artworkId);
+    showToast(`Added ${artworkId} to queue.`);
+    return true;
   }
 
   function clearQueue() {
@@ -103,6 +122,17 @@
     });
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 1800);
+  }
+
+  function styleQueueButton(button, queued) {
+    button.textContent = queued ? "Queued ✓" : "Add to queue";
+    button.style.background = queued ? "#2f6fed" : "#0096fa";
+    button.style.color = "#fff";
+  }
+
+  function stopCardClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
   }
 
   let managementPanel;
@@ -150,7 +180,6 @@
       .addEventListener("click", () => {
         if (confirm("Clear the entire queue?")) {
           clearQueue();
-          refreshArtworkButton();
           showToast("Queue cleared.");
         }
       });
@@ -202,49 +231,130 @@
       boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
     });
 
-    const queue = readQueue();
-    const isQueued = queue.items.some((item) => item.id === artworkId);
-    queueButton.textContent = isQueued ? "Queued ✓" : "Add to queue";
-    queueButton.style.background = isQueued ? "#2f6fed" : "#0096fa";
-    queueButton.style.color = "#fff";
+    styleQueueButton(queueButton, isQueued(artworkId));
+    queueButton.addEventListener("click", () => toggleQueue(artworkId));
+    document.body.appendChild(queueButton);
+  }
 
-    queueButton.addEventListener("click", () => {
-      if (isQueued) {
-        removeFromQueue(artworkId);
-        showToast(`Removed ${artworkId} from queue.`);
-      } else {
-        addToQueue(artworkId);
-        showToast(`Added ${artworkId} to queue.`);
-      }
-      refreshArtworkButton();
+  function isThumbnailLink(link) {
+    if (link.closest("#pixiv-queue-panel")) {
+      return false;
+    }
+
+    if (link.querySelector("img, [role='img']")) {
+      return true;
+    }
+
+    const rect = link.getBoundingClientRect();
+    return rect.width >= 96 && rect.height >= 96;
+  }
+
+  function styleCardButton(button, queued) {
+    button.textContent = queued ? "✓" : "+";
+    button.title = queued ? "Queued — click to remove" : "Add to queue";
+    button.setAttribute("aria-label", button.title);
+    button.style.background = queued ? "#2f6fed" : "#0096fa";
+    button.style.color = "#fff";
+  }
+
+  function attachCardButton(link, artworkId) {
+    if (link.querySelector(`.${CARD_BUTTON_CLASS}`)) {
+      return;
+    }
+
+    const computed = window.getComputedStyle(link);
+    if (computed.position === "static") {
+      link.style.position = "relative";
+    }
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = CARD_BUTTON_CLASS;
+    button.dataset.pixivQueueId = String(artworkId);
+    Object.assign(button.style, {
+      position: "absolute",
+      top: "6px",
+      right: "6px",
+      zIndex: "20",
+      width: "28px",
+      height: "28px",
+      padding: "0",
+      border: "none",
+      borderRadius: "999px",
+      cursor: "pointer",
+      fontSize: "18px",
+      fontWeight: "700",
+      lineHeight: "28px",
+      fontFamily: "system-ui, sans-serif",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.35)",
     });
 
-    document.body.appendChild(queueButton);
+    styleCardButton(button, isQueued(artworkId));
+    button.addEventListener("click", (event) => {
+      stopCardClick(event);
+      toggleQueue(artworkId);
+    });
+    button.addEventListener("mousedown", stopCardClick);
+    button.addEventListener("pointerdown", stopCardClick);
+
+    link.appendChild(button);
+  }
+
+  function refreshCardButtonStates() {
+    const queuedIds = new Set(readQueue().items.map((item) => item.id));
+    document.querySelectorAll(`.${CARD_BUTTON_CLASS}`).forEach((button) => {
+      const artworkId = Number(button.dataset.pixivQueueId);
+      styleCardButton(button, queuedIds.has(artworkId));
+    });
+  }
+
+  function scanListingCards() {
+    const currentArtworkId = isArtworkPage() ? parseArtworkId() : null;
+    const seen = new Set();
+
+    document.querySelectorAll('a[href*="/artworks/"]').forEach((link) => {
+      const artworkId = parseArtworkId(link.getAttribute("href") || "");
+      if (!artworkId || seen.has(artworkId) || artworkId === currentArtworkId) {
+        return;
+      }
+      if (!isThumbnailLink(link)) {
+        return;
+      }
+
+      seen.add(artworkId);
+      attachCardButton(link, artworkId);
+    });
   }
 
   function onNavigate() {
     refreshArtworkButton();
     updateManagementPanel();
+    scanListingCards();
   }
 
   GM_registerMenuCommand("Export queue.json", exportQueue);
   GM_registerMenuCommand("Clear queue", () => {
     if (confirm("Clear the entire queue?")) {
       clearQueue();
-      refreshArtworkButton();
     }
   });
 
   initPanel();
   updateManagementPanel();
   refreshArtworkButton();
+  scanListingCards();
 
   let lastUrl = location.href;
+  let scanTimer = null;
   const observer = new MutationObserver(() => {
     if (location.href !== lastUrl) {
       lastUrl = location.href;
       onNavigate();
+      return;
     }
+
+    clearTimeout(scanTimer);
+    scanTimer = setTimeout(scanListingCards, 250);
   });
   observer.observe(document, { subtree: true, childList: true });
 
