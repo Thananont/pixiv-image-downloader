@@ -90,6 +90,7 @@ def download_artwork(
             url,
             path=str(artwork_dir),
             name=filename,
+            replace=True,
             referer="https://www.pixiv.net/",
         )
 
