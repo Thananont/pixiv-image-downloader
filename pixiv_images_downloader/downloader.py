@@ -70,8 +70,8 @@ def download_artwork(
 ) -> list[Path]:
     image_data, urls = get_image_data(api, artwork_id)
 
-    artist_folder_name = sanitize_filename(f"{image_data["user_name"]}_{image_data["user_id"]}")
-    artwork_folder_name = sanitize_filename(f"{image_data["title"]}_{artwork_id}")
+    artist_folder_name = sanitize_filename(f"{image_data['user_name']}_{image_data['user_id']}")
+    artwork_folder_name = sanitize_filename(f"{image_data['title']}_{artwork_id}")
     artwork_dir = output_dir / artist_folder_name / artwork_folder_name 
     artwork_dir.mkdir(parents=True, exist_ok=True)
     saved: list[Path] = []
