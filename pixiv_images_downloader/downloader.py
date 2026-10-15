@@ -23,8 +23,14 @@ def get_image_file_extension_from_url(url: str) -> str:
 
 def get_image_data(api: AppPixivAPI, artwork_id: int) -> tuple[object, list[str]]:
     detail = api.illust_detail(artwork_id)
-    illust = detail.illust
-    user = illust.user 
+    illust = detail.get("illust")
+    if not illust:
+        # Deleted, private or restricted works come back as {"error": {...}}.
+        error = detail.get("error") or {}
+        message = error.get("user_message") or error.get("message") or "no details given"
+        raise RuntimeError(f"Pixiv returned no artwork for {artwork_id}: {message}")
+
+    user = illust.user
 
     title = illust.title
     user_id = user.id
