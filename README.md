@@ -59,7 +59,7 @@ Move or point to the exported file, then run:
 python -m pixiv_images_downloader download --queue path\to\pixiv-queue.json
 ```
 
-Images are saved to `downloads/` by default (configurable via `DOWNLOAD_DIR` in `.env`). Each artwork gets its own folder; all pages from the same `artwork_id` go in that folder.
+Images are saved to `downloads/` by default (configurable via `DOWNLOAD_DIR` in `.env`). Each artist gets a folder, and each artwork gets its own folder inside it; all pages from the same `artwork_id` go in that folder.
 
 ### Download by ID directly
 
@@ -104,7 +104,7 @@ See `queue.example.json`:
 
 - Multi-page artworks download every page automatically into one folder per artwork.
 - Existing files are skipped unless you pass `--force`.
-- Folders look like: `downloads/ArtistName_123456789_Title/p01.jpg`
+- Folders look like: `downloads/ArtistName_12345/Title_123456789/p01.jpg` (artist name + user ID, then title + artwork ID)
 - For personal use only. Respect Pixiv's terms and rate limits.
 
 ## Next steps
